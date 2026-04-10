@@ -6,7 +6,11 @@ import { BibleRequest } from './interfaces/bibleMessages';
 
 joplin.plugins.register({
   onStart: async function () {
-    await bibleQuote.init();
+    try {
+      await bibleQuote.init();
+    } catch (error) {
+      console.error('Bible Quote init failed:', error);
+    }
 
     await joplin.contentScripts.onMessage('bible-quote', async (message: BibleRequest) => {
       return await handleBibleMessage(message);

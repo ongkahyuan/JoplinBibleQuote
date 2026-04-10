@@ -4,7 +4,8 @@ export type BibleRequest =
   | { type: 'LIST_VERSIONS' }
   | { type: 'GET_BIBLE'; version: string }
   | { type: 'INIT_BIBLES'; versions: string[] }
-  | { type: 'GET_SETTINGS' };
+  | { type: 'GET_SETTINGS' }
+  | { type: 'SET_DEFAULT_VERSION'; version: string };
 
 export type BibleResponse =
   | { type: 'VERSE'; text: string }
@@ -12,4 +13,5 @@ export type BibleResponse =
   | { type: 'VERSIONS'; versions: string[] }
   | { type: 'BIBLE'; data: import('./BibleNote').BibleNote }
   | { type: 'INIT_COMPLETE'; loaded: string[]; available: string[] }
-  | { type: 'SETTINGS'; settings: import('./config').MobilePluginConfig };
+  | { type: 'SETTINGS'; settings: import('./config').MobilePluginConfig }
+  | { type: 'DEFAULT_SET'; version: string };

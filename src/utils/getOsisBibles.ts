@@ -23,9 +23,15 @@ export function getOsisBiblesWithPaths(biblesPath: string): Array<OsisBibleWithP
     return [];
   }
 
-  let files = fs.readdirSync(biblesPath, {
-    withFileTypes: true,
-  });
+  let files: any[] = [];
+  try {
+    files = fs.readdirSync(biblesPath, {
+      withFileTypes: true,
+    });
+  } catch (error) {
+    console.error('Failed to read bibles directory:', error);
+    return [];
+  }
 
   files = files.filter((file: any) => file.name.match(/.xml$/));
 

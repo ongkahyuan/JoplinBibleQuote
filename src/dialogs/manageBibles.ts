@@ -5,12 +5,14 @@ export interface BibleListItem {
   version: string;
   bookCount: number;
   sizeBytes: number;
+  isDefault: boolean;
 }
 
 const DIALOG_ID = 'bible-quote-manage-bibles';
 
 export async function showManageBiblesDialog(): Promise<string[]> {
-  const versions = await listBibles();
+  const currentDefault = await joplin.settings.value('defaultBibleVersion');
+  const versions = await listBibles(currentDefault);
 
   if (versions.length === 0) {
     await joplin.views.dialogs.showMessageBox('No Bibles imported yet. Use "Import Bible" to add one.');
@@ -18,14 +20,15 @@ export async function showManageBiblesDialog(): Promise<string[]> {
   }
 
   const deletedVersions: string[] = [];
-  const html = buildManageBiblesHtml(versions);
+  let html = buildManageBiblesHtml(versions);
 
   const dialog = await joplin.views.dialogs.create(DIALOG_ID);
   await joplin.views.dialogs.setHtml(dialog, html);
   await joplin.views.dialogs.setFitToContent(dialog, true);
   await joplin.views.dialogs.setButtons(dialog, [
-    { id: 'cancel' },
-    { id: 'delete' }
+    { id: 'cancel', title: 'Cancel' },
+    { id: 'setDefault', title: 'Set Default' },
+    { id: 'deleteSelected', title: 'Delete Selected' }
   ]);
 
   let shouldClose = false;
@@ -37,10 +40,31 @@ export async function showManageBiblesDialog(): Promise<string[]> {
       continue;
     }
 
-    if (result.id === 'delete') {
+    if (result.id === 'setDefault') {
       const formData = result.formData;
-      if (formData && formData.bibles) {
-        const selectedVersions = Array.isArray(formData.bibles) ? formData.bibles : [formData.bibles];
+      const selectedDefault = formData?.defaultBible;
+
+      if (!selectedDefault) {
+        await joplin.views.dialogs.showMessageBox('Select a Bible to set as default.');
+        html = buildManageBiblesHtml(versions);
+        await joplin.views.dialogs.setHtml(dialog, html);
+        continue;
+      }
+
+      await joplin.settings.setValue('defaultBibleVersion', selectedDefault);
+      await handleBibleMessage({ type: 'SET_DEFAULT_VERSION', version: selectedDefault });
+
+      versions.forEach(v => v.isDefault = v.version === selectedDefault);
+      html = buildManageBiblesHtml(versions);
+      await joplin.views.dialogs.setHtml(dialog, html);
+
+      await joplin.views.dialogs.showMessageBox(`Default Bible set to ${selectedDefault}`);
+    }
+
+    if (result.id === 'deleteSelected') {
+      const formData = result.formData;
+      if (formData && formData.biblesToDelete) {
+        const selectedVersions = Array.isArray(formData.biblesToDelete) ? formData.biblesToDelete : [formData.biblesToDelete];
 
         if (selectedVersions.length > 0) {
           const confirmed = await joplin.views.dialogs.showMessageBox(
@@ -55,13 +79,23 @@ export async function showManageBiblesDialog(): Promise<string[]> {
               removeBibleFromCache(version);
               deletedVersions.push(version);
             }
-            shouldClose = true;
+
+            const newVersions = versions.filter(v => !deletedVersions.includes(v.version));
+            if (newVersions.length === 0) {
+              shouldClose = true;
+            } else {
+              html = buildManageBiblesHtml(newVersions);
+              await joplin.views.dialogs.setHtml(dialog, html);
+            }
+          } else {
+            html = buildManageBiblesHtml(versions);
+            await joplin.views.dialogs.setHtml(dialog, html);
           }
         } else {
-          await joplin.views.dialogs.showMessageBox('No Bibles selected for deletion.');
+          await joplin.views.dialogs.showMessageBox('Select Bibles to delete.');
         }
       } else {
-        await joplin.views.dialogs.showMessageBox('No Bibles selected for deletion.');
+        await joplin.views.dialogs.showMessageBox('Select Bibles to delete.');
       }
     }
   }
@@ -71,11 +105,18 @@ export async function showManageBiblesDialog(): Promise<string[]> {
 
 function buildManageBiblesHtml(bibles: BibleListItem[]): string {
   const rows = bibles.map(bible => `
-    <tr>
-      <td><input type="checkbox" name="bibles" value="${bible.version}" id="bible-${bible.version}"></td>
-      <td><label for="bible-${bible.version}">${bible.version}</label></td>
+    <tr class="${bible.isDefault ? 'default-row' : ''}">
+      <td>
+        <input type="radio" name="defaultBible" value="${bible.version}"
+               id="default-${bible.version}" ${bible.isDefault ? 'checked' : ''}>
+      </td>
+      <td><label for="default-${bible.version}">${bible.version}</label></td>
       <td>${bible.bookCount}</td>
       <td>${formatSize(bible.sizeBytes)}</td>
+      <td style="text-align: center;">
+        <input type="checkbox" name="biblesToDelete" value="${bible.version}"
+               id="delete-${bible.version}">
+      </td>
     </tr>
   `).join('');
 
@@ -110,21 +151,35 @@ function buildManageBiblesHtml(bibles: BibleListItem[]): string {
         tr:hover {
           background-color: #fafafa;
         }
-        input[type="checkbox"] {
+        tr.default-row {
+          background-color: #e8f4e8;
+        }
+        input[type="radio"], input[type="checkbox"] {
           width: 16px;
           height: 16px;
+          cursor: pointer;
+        }
+        td:nth-child(5) {
+          text-align: center;
+        }
+        .instructions {
+          font-size: 14px;
+          color: #666;
+          margin-bottom: 15px;
         }
       </style>
     </head>
     <body>
       <h2>Manage Imported Bibles</h2>
+      <p class="instructions">Select a radio button to set default. Check boxes to select for deletion.</p>
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>Default</th>
             <th>Version</th>
             <th>Books</th>
             <th>Size</th>
+            <th>Delete</th>
           </tr>
         </thead>
         <tbody>
@@ -136,7 +191,7 @@ function buildManageBiblesHtml(bibles: BibleListItem[]): string {
   `;
 }
 
-async function listBibles(): Promise<BibleListItem[]> {
+async function listBibles(currentDefault: string): Promise<BibleListItem[]> {
   const response = await handleBibleMessage({ type: 'LIST_VERSIONS' });
 
   if (response.type !== 'VERSIONS') {
@@ -153,7 +208,8 @@ async function listBibles(): Promise<BibleListItem[]> {
       items.push({
         version,
         bookCount: bibleResponse.data.books.length,
-        sizeBytes: new Blob([bodyStr]).size
+        sizeBytes: new Blob([bodyStr]).size,
+        isDefault: version === currentDefault
       });
     }
   }

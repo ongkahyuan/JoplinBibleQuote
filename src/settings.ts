@@ -42,8 +42,7 @@ export namespace Settings {
       section: 'bibleQuoteSection',
       public: true,
       label: 'Default Bible Version',
-      description: 'Select default Bible version for mobile',
-      appTypes: [AppType.Mobile],
+      description: 'Select default Bible version to use in mobile',
     },
     verseFontSize: {
       value: 16,

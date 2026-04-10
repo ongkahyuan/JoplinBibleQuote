@@ -20,6 +20,8 @@ export async function handleBibleMessage(message: BibleRequest): Promise<BibleRe
       return await initBibles(message.versions);
     case 'GET_SETTINGS':
       return { type: 'SETTINGS', settings: getMobilePluginConfig() };
+    case 'SET_DEFAULT_VERSION':
+      return setDefaultVersion(message.version);
   }
 }
 
@@ -148,6 +150,18 @@ function getMobilePluginConfig(): MobilePluginConfig {
     chapterPadding: config.chapterPadding,
     language: config.language
   };
+}
+
+function setDefaultVersion(version: string): { type: 'DEFAULT_SET'; version } {
+  try {
+    const configStr = localStorage.getItem('bibleQuotePlugin');
+    const config = configStr ? JSON.parse(configStr) : {};
+    config.defaultBibleVersion = version;
+    localStorage.setItem('bibleQuotePlugin', JSON.stringify(config));
+  } catch (e) {
+    // localStorage not available - ignore
+  }
+  return { type: 'DEFAULT_SET', version };
 }
 
 export function clearBibleCache(): void {

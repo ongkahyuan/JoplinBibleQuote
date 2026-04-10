@@ -3,12 +3,13 @@ import { getOsisBiblesWithPaths } from '../utils/getOsisBibles';
 import { importBible } from './importBible';
 import { handleBibleMessage } from '../messageHandler';
 
-const MIGRATED_SETTING = 'bibleQuoteMigratedToNotes';
-
 export async function migrateExistingBibles(): Promise<void> {
   try {
-    const alreadyMigrated = await joplin.settings.value(MIGRATED_SETTING);
-    if (alreadyMigrated) return;
+    const versionsResponse = await handleBibleMessage({ type: 'LIST_VERSIONS' });
+    if (versionsResponse.type === 'VERSIONS' && versionsResponse.versions.length > 0) {
+      console.log('Migration skipped: Bibles already imported');
+      return;
+    }
 
     const biblesPath = await joplin.settings.value('biblesPath');
     if (!biblesPath) return;
@@ -16,7 +17,7 @@ export async function migrateExistingBibles(): Promise<void> {
     const osisBibles = getOsisBiblesWithPaths(biblesPath);
 
     if (osisBibles.length === 0) {
-      await joplin.settings.setValue(MIGRATED_SETTING, true);
+      console.log('Migration skipped: No OSIS Bibles found');
       return;
     }
 
@@ -33,26 +34,8 @@ export async function migrateExistingBibles(): Promise<void> {
       }
     }
 
-    await joplin.settings.setValue(MIGRATED_SETTING, true);
     console.log('Bible migration completed');
   } catch (error) {
     console.error('Migration failed:', error);
-  }
-}
-
-export async function isMigrationNeeded(): Promise<boolean> {
-  try {
-    const alreadyMigrated = await joplin.settings.value(MIGRATED_SETTING);
-    if (alreadyMigrated) return false;
-
-    const versionsResponse = await handleBibleMessage({ type: 'LIST_VERSIONS' });
-    if (versionsResponse.type !== 'VERSIONS') return true;
-
-    const biblesPath = await joplin.settings.value('biblesPath');
-    if (!biblesPath) return false;
-
-    return true;
-  } catch {
-    return false;
   }
 }

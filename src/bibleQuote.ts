@@ -4,9 +4,7 @@ import { ContentScriptType } from 'api/types';
 
 function safeGetLocalStorage(): Storage | null {
   try {
-    const test = '__localStorage_test__';
-    localStorage.setItem(test, test);
-    localStorage.removeItem(test);
+    if (typeof localStorage === 'undefined') return null;
     return localStorage;
   } catch (e) {
     return null;
