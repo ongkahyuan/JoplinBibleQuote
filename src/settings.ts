@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItem, SettingItemType } from 'api/types';
+import { SettingItem, SettingItemType, AppType } from 'api/types';
 
 export namespace Settings {
   export const settings: Record<string, SettingItem> = {
@@ -24,7 +24,8 @@ export namespace Settings {
       section: 'bibleQuoteSection',
       public: true,
       label: 'Path to the default OSIS Bible file',
-      description: 'e.g. C:/My/Path/To/Default-OSIS-Bible.xml',
+      description: 'e.g. C:/My/Path/To/Default-OSIS-Bible.xml (desktop only)',
+      appTypes: [AppType.Desktop],
     },
     biblesPath: {
       value: '',
@@ -32,7 +33,17 @@ export namespace Settings {
       section: 'bibleQuoteSection',
       public: true,
       label: 'Path to a folder containing OSIS bibles',
-      description: 'If you want to select from multiple versions: e.g. C:/My/Path/To/MyFolder',
+      description: 'If you want to select from multiple versions: e.g. C:/My/Path/To/MyFolder (desktop only)',
+      appTypes: [AppType.Desktop],
+    },
+    defaultBibleVersion: {
+      value: '',
+      type: SettingItemType.String,
+      section: 'bibleQuoteSection',
+      public: true,
+      label: 'Default Bible Version',
+      description: 'Select default Bible version for mobile',
+      appTypes: [AppType.Mobile],
     },
     verseFontSize: {
       value: 16,

@@ -1,21 +1,32 @@
-import path = require('path');
 import joplin from 'api';
 import { Settings } from './settings';
 import { ContentScriptType } from 'api/types';
 
+function safeGetLocalStorage(): Storage | null {
+  try {
+    const test = '__localStorage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return localStorage;
+  } catch (e) {
+    return null;
+  }
+}
+
 export namespace bibleQuote {
   export async function init() {
-    console.log('Biblie Quote plugin started!');
+    console.log('Bible Quote plugin started!');
 
     await Settings.register();
 
-    // Save the plugins settings to localStorage to be available to the markdownItPlugin
-    localStorage.setItem('bibleQuotePlugin', JSON.stringify({}));
-    for (const setting in Settings.settings) {
-      await updateSetting(setting);
+    const storage = safeGetLocalStorage();
+    if (storage) {
+      storage.setItem('bibleQuotePlugin', JSON.stringify({}));
+      for (const setting in Settings.settings) {
+        await updateSetting(setting);
+      }
     }
 
-    // Save the changed settings to localStorage
     joplin.settings.onChange(async (event: any) => {
       await bibleQuote.settingsChanged(event);
     });
@@ -23,33 +34,37 @@ export namespace bibleQuote {
     await joplin.contentScripts.register(ContentScriptType.MarkdownItPlugin, 'bible-quote', './markdownItPlugin.js');
   }
 
-  /**
-   * Saves the changed settings to localStorage
-   * @param event
-   */
   export async function settingsChanged(event: any) {
     for (let key of event.keys) {
       await updateSetting(key);
     }
   }
 
-  /**
-   * Saves a setting to the localStorage
-   * @param setting
-   */
   export async function updateSetting(setting: string): Promise<void> {
-    localStorage.setItem('bibleQuoteSettingsUpdated', 'true');
-    const localStorageConfig = JSON.parse(localStorage.getItem('bibleQuotePlugin'));
+    const storage = safeGetLocalStorage();
+    if (!storage) return;
 
-    let value = await joplin.settings.value(setting);
+    try {
+      storage.setItem('bibleQuoteSettingsUpdated', 'true');
+      const configStr = storage.getItem('bibleQuotePlugin');
+      const localStorageConfig = configStr ? JSON.parse(configStr) : {};
 
-    // If the setting is a path normalize it before saving to localStorage
-    if (Settings.pathSettings.includes(setting)) {
-      if (typeof value === 'undefined') value = '';
-      value = path.normalize(value);
+      let value = await joplin.settings.value(setting);
+
+      if (Settings.pathSettings.includes(setting)) {
+        if (typeof value === 'undefined') value = '';
+      }
+
+      localStorageConfig[setting] = value;
+
+      if (setting === 'defaultBibleVersion') {
+        localStorageConfig.defaultBibleVersion = value;
+      }
+
+      storage.setItem('bibleQuotePlugin', JSON.stringify(localStorageConfig));
+    } catch (error) {
+      console.warn('Failed to update localStorage settings:', error);
     }
-
-    localStorageConfig[setting] = value;
-    localStorage.setItem('bibleQuotePlugin', JSON.stringify(localStorageConfig));
   }
+
 }

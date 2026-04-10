@@ -1,18 +1,23 @@
 import { BibleLanguage } from '../interfaces/bibleIndex';
 import { PluginConfig } from '../interfaces/config';
-import { OsisBible } from '../interfaces/osisBible';
+import { BibleNote } from '../interfaces/BibleNote';
 import { ParsedEntity } from '../interfaces/parseResult';
 import { cssObj2String } from '../utils/cssObj2String';
 import CitationsBlock from './CitationsBlock';
 import ParallelBlock from './ParallelBlock';
 
-/**
- * Creates the html for the render
- * @param props
- * @returns html string
- */
+interface Props {
+  bibleIndex: BibleLanguage;
+  bibleInfo: any;
+  loadedBibles: Map<string, BibleNote>;
+  availableVersions: string[];
+  parsedEntities: Array<ParsedEntity>;
+  pluginConfig: PluginConfig;
+  getVerseText: (version: string, book: string, chapter: number, verse: number) => string;
+}
+
 export default function Main(props: Props) {
-  const { bibleIndex, bibleInfo, parsedEntities, defaultOsisBible, osisBibles, pluginConfig } = props;
+  const { bibleIndex, bibleInfo, parsedEntities, loadedBibles, availableVersions, pluginConfig, getVerseText } = props;
   const html = document.createElement('div');
   html.setAttribute('style', `border:1px solid #545454;`);
 
@@ -21,9 +26,11 @@ export default function Main(props: Props) {
       html.innerHTML += ParallelBlock({
         bibleIndex,
         bibleInfo,
-        osisBibles,
+        loadedBibles,
+        availableVersions,
         parsedEntity: entity,
         pluginConfig,
+        getVerseText,
       });
     }
 
@@ -31,14 +38,14 @@ export default function Main(props: Props) {
       html.innerHTML += CitationsBlock({
         bibleIndex,
         bibleInfo,
-        defaultOsisBible,
+        loadedBibles,
+        availableVersions,
         entity,
-        osisBibles,
         pluginConfig,
+        getVerseText,
       });
     }
 
-    // Add a line separator between blocks
     if (entity === parsedEntities[parsedEntities.length - 1]) continue;
     html.innerHTML += `<hr style="${cssObj2String({
       border: 'none',
@@ -51,13 +58,4 @@ export default function Main(props: Props) {
   }
 
   return html.outerHTML;
-}
-
-interface Props {
-  bibleIndex: BibleLanguage;
-  bibleInfo: any;
-  defaultOsisBible: OsisBible;
-  osisBibles: Array<OsisBible>;
-  parsedEntities: Array<ParsedEntity>;
-  pluginConfig: PluginConfig;
 }

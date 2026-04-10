@@ -1,28 +1,39 @@
-import fs = require('fs');
-import path = require('path');
+import joplin from 'api';
 import { OsisBible } from '../interfaces/osisBible';
 import { getOsisBible } from './getOsisBible';
 
-/**
- * Imports xml osis Bibles from a folder path
- * @param biblesPath
- * @returns An array of OSIS Bibles
- */
+export interface OsisBibleWithPath {
+  path: string;
+  osisBible: OsisBible;
+}
+
 export function getOsisBibles(biblesPath: string): Array<OsisBible> {
-  const osisBibles = [];
+  const biblesWithPaths = getOsisBiblesWithPaths(biblesPath);
+  return biblesWithPaths.map(b => b.osisBible);
+}
+
+export function getOsisBiblesWithPaths(biblesPath: string): Array<OsisBibleWithPath> {
+  const osisBibles: Array<OsisBibleWithPath> = [];
+
+  let fs: any;
+  try {
+    fs = joplin.require('fs');
+  } catch (error) {
+    console.error('File system access is only available on desktop.');
+    return [];
+  }
 
   let files = fs.readdirSync(biblesPath, {
     withFileTypes: true,
   });
 
-  // Filter only xml files
-  files = files.filter((file) => file.name.match(/.xml$/));
+  files = files.filter((file: any) => file.name.match(/.xml$/));
 
-  // Try to open the Bible files
   for (const file of files) {
-    const result = getOsisBible(path.join(biblesPath, file.name));
-    if (result.errorMessage) continue;
-    osisBibles.push(result.osisBible);
+    const filePath = biblesPath + '/' + file.name;
+    const result = getOsisBible(filePath);
+    if (result.errorMessage || !result.osisBible) continue;
+    osisBibles.push({ path: filePath, osisBible: result.osisBible });
   }
 
   return osisBibles;

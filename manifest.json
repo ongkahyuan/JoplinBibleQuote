@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"id": "com.DanteCoder.JoplinBibleQuote",
-	"app_min_version": "2.4",
+	"app_min_version": "2.8",
 	"version": "2.1.0",
 	"name": "Bible Quote",
 	"description": "Quote the bible direct in text editor",
@@ -12,9 +12,5 @@
 		"Bible",
 		"citation",
 		"quote"
-	],
-	"platforms": [
-		"desktop",
-		"mobile"
 	]
 }

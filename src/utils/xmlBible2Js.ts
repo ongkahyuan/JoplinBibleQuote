@@ -1,4 +1,4 @@
-import fs = require('fs');
+import joplin from 'api';
 import { OsisBible } from 'src/interfaces/osisBible';
 import { parseString as parseXmlString } from 'xml2js';
 
@@ -8,6 +8,13 @@ import { parseString as parseXmlString } from 'xml2js';
  * @returns Parsed xml bible and error
  */
 export function xmlBible2Js(biblePath: string): ReturnValue {
+  let fs: any;
+  try {
+    fs = joplin.require('fs');
+  } catch (error) {
+    return { errorMessage: 'File system access is only available on desktop.' };
+  }
+
   let returnValue: ReturnValue;
   let xmlFile: any;
   try {

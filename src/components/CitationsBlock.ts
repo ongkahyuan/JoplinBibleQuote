@@ -1,8 +1,7 @@
 import { PluginConfig } from '../interfaces/config';
-import { OsisBible } from '../interfaces/osisBible';
+import { BibleNote } from '../interfaces/BibleNote';
 import { ParsedQuote } from '../interfaces/parsedQuote';
 import { cssObj2String } from '../utils/cssObj2String';
-import { getVerseText } from '../utils/getVerseText';
 import { bibleIndexFull } from '../languages';
 import Book from './Book';
 import Chapter from './Chapter';
@@ -12,13 +11,18 @@ import { ParsedEntity } from '../interfaces/parseResult';
 import { parseQuote } from '../utils/parseQuote';
 import { BibleLanguage } from '../interfaces/bibleIndex';
 
-/**
- * Creates the html for a list of citations
- * @param props
- * @returns html string
- */
+interface Props {
+  bibleIndex: BibleLanguage;
+  bibleInfo: any;
+  entity: ParsedEntity;
+  loadedBibles: Map<string, BibleNote>;
+  availableVersions: string[];
+  pluginConfig: PluginConfig;
+  getVerseText: (version: string, book: string, chapter: number, verse: number) => string;
+}
+
 export default function CitationsBlock(props: Props) {
-  const { bibleIndex, bibleInfo, defaultOsisBible, entity, osisBibles, pluginConfig } = props;
+  const { bibleIndex, bibleInfo, entity, loadedBibles, availableVersions, pluginConfig, getVerseText } = props;
   const html = document.createElement('div');
 
   html.setAttribute(
@@ -34,11 +38,9 @@ export default function CitationsBlock(props: Props) {
   }
 
   for (const version of entity.versions) {
-    let osisBible: OsisBible;
+    let bibleVersion = version;
     if (version === 'default') {
-      osisBible = defaultOsisBible;
-    } else {
-      osisBible = osisBibles.find((bible) => bible.$.osisIDWork === version);
+      bibleVersion = pluginConfig.defaultBibleVersion || availableVersions[0] || '';
     }
 
     for (const fullQuote of parsedQuotes) {
@@ -48,7 +50,7 @@ export default function CitationsBlock(props: Props) {
         for (const chapter of book.chapters) {
           const versesHTML = [];
           for (let verse of chapter.verses) {
-            const verseText = getVerseText(osisBible, { b: book.id, c: chapter.id, v: verse });
+            const verseText = getVerseText(bibleVersion, book.id, chapter.id, verse);
             versesHTML.push(
               Verse({
                 text: verseText,
@@ -69,10 +71,10 @@ export default function CitationsBlock(props: Props) {
               number: chapter.id,
               displayChapter: book.chapters.length > 1 || fullQuote.books.length > 1,
               style: {
-                fontSize: `${pluginConfig.verseFontSize * 1.1}px`,
+                fontSize: `${Number(pluginConfig.verseFontSize) * 1.1}px`,
                 padding: `${pluginConfig.chapterPadding}px`,
                 textAlign: pluginConfig.chapterAlignment,
-                textIndent: `${pluginConfig.verseFontSize * 2}px`,
+                textIndent: `${Number(pluginConfig.verseFontSize) * 2}px`,
               },
             })
           );
@@ -84,7 +86,7 @@ export default function CitationsBlock(props: Props) {
             name: book.name,
             displayName: fullQuote.books.length > 1,
             style: {
-              fontSize: `${pluginConfig.verseFontSize * 1.6}px`,
+              fontSize: `${Number(pluginConfig.verseFontSize) * 1.6}px`,
               margin: '0px',
               textAlign: pluginConfig.bookAlignment,
             },
@@ -95,7 +97,7 @@ export default function CitationsBlock(props: Props) {
       html.innerHTML += Citation({
         books: booksHtml,
         citation: fullQuote.cite,
-        osisIDWork: osisBible.$.osisIDWork,
+        osisIDWork: bibleVersion,
         displayFullCitation: true,
         displayOsisIDWork: true,
         style: {
@@ -103,13 +105,11 @@ export default function CitationsBlock(props: Props) {
         },
       });
 
-      // Add a line separator between citations
       if (fullQuote !== parsedQuotes[parsedQuotes.length - 1]) {
         html.innerHTML += `<hr style="border: none; border-top: 1px solid grey; margin: ${pluginConfig.verseFontSize}px">`;
       }
     }
 
-    // Add a line separator between versions
     if (version === entity.versions[entity.versions.length - 1]) continue;
     html.innerHTML += `<hr style="${cssObj2String({
       border: 'none',
@@ -120,13 +120,4 @@ export default function CitationsBlock(props: Props) {
   }
 
   return html.outerHTML;
-}
-
-interface Props {
-  bibleIndex: BibleLanguage;
-  bibleInfo: any;
-  entity: ParsedEntity;
-  defaultOsisBible: OsisBible;
-  osisBibles: Array<OsisBible>;
-  pluginConfig: PluginConfig;
 }
