@@ -95,9 +95,26 @@ export namespace Settings {
       label: 'Chapter side padding',
       description: 'Chapter side padding in pixels.',
     },
+    defaultNoteBibleId: {
+      value: '',
+      type: SettingItemType.String,
+      section: 'bibleQuoteSection',
+      public: true,
+      label: 'Default Note Bible',
+      description: 'The ID of the note containing your default bible (for mobile compatibility)',
+    },
+    importBiblePath: {
+      value: '',
+      type: SettingItemType.String,
+      section: 'bibleQuoteSection',
+      public: true,
+      label: 'OSIS Bible to import',
+      description: 'Path to an OSIS Bible file to import for mobile access. Or use Tools > Bible Quote: Import OSIS Bible to Note',
+    },
   };
 
-  export const pathSettings = ['biblePath', 'biblesPath'];
+  export const pathSettings = ['biblePath', 'biblesPath', 'importBiblePath'];
+  export const noteSettings = ['defaultNoteBibleId'];
 
   export async function register() {
     await joplin.settings.registerSection('bibleQuoteSection', {

@@ -1,6 +1,7 @@
 import { BibleLanguage } from '../interfaces/bibleIndex';
 import { PluginConfig } from '../interfaces/config';
 import { OsisBible } from '../interfaces/osisBible';
+import { NoteBible } from '../interfaces/noteBible';
 import { ParsedEntity } from '../interfaces/parseResult';
 import { cssObj2String } from '../utils/cssObj2String';
 import { parseQuote } from '../utils/parseQuote';
@@ -10,13 +11,8 @@ import ParallelVerses from './ParallelVerses';
 import BookName from './BookTitle';
 import FullCitation from './FullCitation';
 
-/**
- * Creates the html for parallel bible versions
- * @param props
- * @returns html string
- */
 export default function ParallelBlock(props: Props) {
-  const { bibleIndex, bibleInfo, osisBibles, parsedEntity, pluginConfig } = props;
+  const { bibleIndex, bibleInfo, osisBibles, noteBibles, parsedEntity, pluginConfig } = props;
   const html = document.createElement('div');
 
   html.setAttribute(
@@ -25,6 +21,8 @@ export default function ParallelBlock(props: Props) {
       padding: '30px',
     })
   );
+
+  const usingNoteBible = (noteBibles && noteBibles.length > 0);
 
   for (const osisObject of parsedEntity.osisObjects) {
     const parsedQuote = parseQuote(osisObject, bibleIndex, bibleInfo);
@@ -79,6 +77,8 @@ export default function ParallelBlock(props: Props) {
           bookId: book.id,
           chapter: chapter,
           osisBibles,
+          noteBibles: noteBibles || [],
+          usingNoteBible,
           versions: parsedEntity.versions,
           style: {
             fontSize: `${pluginConfig.verseFontSize}px`,
@@ -88,7 +88,6 @@ export default function ParallelBlock(props: Props) {
       }
     }
 
-    // Add a line separator between citations
     if (osisObject !== parsedEntity.osisObjects[parsedEntity.osisObjects.length - 1]) {
       html.innerHTML += `<hr style="border: none; border-top: 1px solid grey; margin: ${pluginConfig.verseFontSize}px">`;
     }
@@ -102,5 +101,6 @@ interface Props {
   bibleInfo: any;
   parsedEntity: ParsedEntity;
   osisBibles: Array<OsisBible>;
+  noteBibles: Array<NoteBible>;
   pluginConfig: PluginConfig;
 }

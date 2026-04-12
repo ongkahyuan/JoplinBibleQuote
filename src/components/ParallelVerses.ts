@@ -1,16 +1,13 @@
 import { OsisBible } from '../interfaces/osisBible';
+import { NoteBible } from '../interfaces/noteBible';
 import { Chapter } from '../interfaces/parsedQuote';
 import { cssObj2String } from '../utils/cssObj2String';
 import { getVerseText } from '../utils/getVerseText';
+import { getVerseTextFromNoteBible } from '../utils/getVerseTextFromNoteBible';
 import Verse from './Verse';
 
-/**
- * Creates the html for parallel verses
- * @param props
- * @returns html string
- */
 export default function ParallelVerses(props: Props) {
-  const { bookId, chapter, osisBibles, style, versions } = props;
+  const { bookId, chapter, osisBibles, noteBibles, style, versions, usingNoteBible } = props;
   const html = document.createElement('div');
   html.setAttribute(
     'style',
@@ -24,10 +21,19 @@ export default function ParallelVerses(props: Props) {
 
   for (const verse of chapter.verses) {
     for (const version of versions) {
-      const verseText = getVerseText(
-        osisBibles.find((bible) => bible.$.osisIDWork === version),
-        { b: bookId, c: chapter.id, v: verse }
-      );
+      let verseText = '';
+
+      if (usingNoteBible) {
+        const noteBible = noteBibles.find((bible) => bible.osisIDWork === version);
+        if (noteBible) {
+          verseText = getVerseTextFromNoteBible(noteBible, { b: bookId, c: chapter.id, v: verse });
+        }
+      } else {
+        const osisBible = osisBibles.find((bible) => bible.$.osisIDWork === version);
+        if (osisBible) {
+          verseText = getVerseText(osisBible, { b: bookId, c: chapter.id, v: verse });
+        }
+      }
 
       html.innerHTML += Verse({ displayNumber: true, number: verse, text: verseText, style });
     }
@@ -41,5 +47,7 @@ interface Props {
   chapter: Chapter;
   versions: Array<string>;
   osisBibles: Array<OsisBible>;
+  noteBibles: Array<NoteBible>;
+  usingNoteBible: boolean;
   style: any;
 }

@@ -1,8 +1,10 @@
 import { PluginConfig } from '../interfaces/config';
 import { OsisBible } from '../interfaces/osisBible';
+import { NoteBible } from '../interfaces/noteBible';
 import { ParsedQuote } from '../interfaces/parsedQuote';
 import { cssObj2String } from '../utils/cssObj2String';
 import { getVerseText } from '../utils/getVerseText';
+import { getVerseTextFromNoteBible } from '../utils/getVerseTextFromNoteBible';
 import { bibleIndexFull } from '../languages';
 import Book from './Book';
 import Chapter from './Chapter';
@@ -12,13 +14,8 @@ import { ParsedEntity } from '../interfaces/parseResult';
 import { parseQuote } from '../utils/parseQuote';
 import { BibleLanguage } from '../interfaces/bibleIndex';
 
-/**
- * Creates the html for a list of citations
- * @param props
- * @returns html string
- */
 export default function CitationsBlock(props: Props) {
-  const { bibleIndex, bibleInfo, defaultOsisBible, entity, osisBibles, pluginConfig } = props;
+  const { bibleIndex, bibleInfo, defaultOsisBible, entity, osisBibles, defaultNoteBible, noteBibles, pluginConfig } = props;
   const html = document.createElement('div');
 
   html.setAttribute(
@@ -28,18 +25,37 @@ export default function CitationsBlock(props: Props) {
     })
   );
 
+  const usingNoteBible = !!defaultNoteBible;
+
   const parsedQuotes: Array<ParsedQuote> = [];
   for (const osisObject of entity.osisObjects) {
     parsedQuotes.push(parseQuote(osisObject, bibleIndex, bibleInfo));
   }
 
   for (const version of entity.versions) {
-    let osisBible: OsisBible;
-    if (version === 'default') {
-      osisBible = defaultOsisBible;
+    let currentOsisBible: OsisBible | null = null;
+    let currentNoteBible: NoteBible | null = null;
+    let osisIDWork = 'unknown';
+
+    if (usingNoteBible) {
+      if (version === 'default') {
+        currentNoteBible = defaultNoteBible;
+        osisIDWork = defaultNoteBible?.osisIDWork || 'unknown';
+      } else {
+        currentNoteBible = noteBibles.find((bible) => bible.osisIDWork === version) || null;
+        osisIDWork = currentNoteBible?.osisIDWork || version;
+      }
     } else {
-      osisBible = osisBibles.find((bible) => bible.$.osisIDWork === version);
+      if (version === 'default') {
+        currentOsisBible = defaultOsisBible;
+        osisIDWork = defaultOsisBible?.$.osisIDWork || 'unknown';
+      } else {
+        currentOsisBible = osisBibles.find((bible) => bible.$.osisIDWork === version) || null;
+        osisIDWork = currentOsisBible?.$.osisIDWork || version;
+      }
     }
+
+    if (!currentOsisBible && !currentNoteBible) continue;
 
     for (const fullQuote of parsedQuotes) {
       const booksHtml = [];
@@ -48,7 +64,13 @@ export default function CitationsBlock(props: Props) {
         for (const chapter of book.chapters) {
           const versesHTML = [];
           for (let verse of chapter.verses) {
-            const verseText = getVerseText(osisBible, { b: book.id, c: chapter.id, v: verse });
+            let verseText = '';
+            if (usingNoteBible && currentNoteBible) {
+              verseText = getVerseTextFromNoteBible(currentNoteBible, { b: book.id, c: chapter.id, v: verse });
+            } else if (currentOsisBible) {
+              verseText = getVerseText(currentOsisBible, { b: book.id, c: chapter.id, v: verse });
+            }
+
             versesHTML.push(
               Verse({
                 text: verseText,
@@ -95,7 +117,7 @@ export default function CitationsBlock(props: Props) {
       html.innerHTML += Citation({
         books: booksHtml,
         citation: fullQuote.cite,
-        osisIDWork: osisBible.$.osisIDWork,
+        osisIDWork,
         displayFullCitation: true,
         displayOsisIDWork: true,
         style: {
@@ -103,13 +125,11 @@ export default function CitationsBlock(props: Props) {
         },
       });
 
-      // Add a line separator between citations
       if (fullQuote !== parsedQuotes[parsedQuotes.length - 1]) {
         html.innerHTML += `<hr style="border: none; border-top: 1px solid grey; margin: ${pluginConfig.verseFontSize}px">`;
       }
     }
 
-    // Add a line separator between versions
     if (version === entity.versions[entity.versions.length - 1]) continue;
     html.innerHTML += `<hr style="${cssObj2String({
       border: 'none',
@@ -126,7 +146,9 @@ interface Props {
   bibleIndex: BibleLanguage;
   bibleInfo: any;
   entity: ParsedEntity;
-  defaultOsisBible: OsisBible;
+  defaultOsisBible: OsisBible | null;
   osisBibles: Array<OsisBible>;
+  defaultNoteBible: NoteBible | null;
+  noteBibles: Array<NoteBible>;
   pluginConfig: PluginConfig;
 }

@@ -7,4 +7,5 @@ export interface PluginConfig {
   language: string;
   verseAlignment: string;
   verseFontSize: number;
+  defaultNoteBibleId: string;
 }
