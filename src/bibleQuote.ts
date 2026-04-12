@@ -2,6 +2,8 @@ import path = require('path');
 import joplin from 'api';
 import { Settings } from './settings';
 import { ContentScriptType } from 'api/types';
+import { importBiblesMobile } from './utils/bibleNoteStorage'
+
 
 export namespace bibleQuote {
   export async function init() {
@@ -30,8 +32,15 @@ export namespace bibleQuote {
   export async function settingsChanged(event: any) {
     for (let key of event.keys) {
       await updateSetting(key);
+      if (key === 'importBiblesMobile') {
+        const value = await joplin.settings.value('importBiblesMobile');
+        if (value === 'Yes') {
+          await importBiblesMobile();
+        }
+      }
     }
   }
+
 
   /**
    * Saves a setting to the localStorage
