@@ -95,6 +95,19 @@ export namespace Settings {
       label: 'Chapter side padding',
       description: 'Chapter side padding in pixels.',
     },
+    importBiblesMobile: {
+      value: 'No',
+      type: SettingItemType.String,
+      isEnum: true,
+      section: 'bibleQuoteSection',
+      public: true,
+      label: 'Import bibles for mobile usage',
+      description: 'Import full bibles into the Joplin data directory for use on mobile devices.',
+      options: {
+        Yes: 'Yes',
+        No: 'No',
+      },
+    },
   };
 
   export const pathSettings = ['biblePath', 'biblesPath'];
