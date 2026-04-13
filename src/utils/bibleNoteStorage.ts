@@ -4,6 +4,8 @@
   
   async function deleteBibleQuoteFolder(): Promise<void> {
     console.log('deleteBibleQuoteFolder: fetching all folders');
+    const folderName = await joplin.settings.value('biblesImportFolder');
+    console.log(`deleteBibleQuoteFolder: looking for folder "${folderName}"`);
     const foldersResult = await joplin.data.get(['folders']);
     console.log(`deleteBibleQuoteFolder: folders result: ${JSON.stringify(foldersResult)}`);
     const folders = foldersResult.items;
@@ -11,7 +13,7 @@
     if (!folders) return;
     for (const folder of folders) {
       console.log(`deleteBibleQuoteFolder: checking folder "${folder.title}"`);
-      if (folder.title === 'BibleQuote') {
+      if (folder.title === folderName) {
         console.log(`deleteBibleQuoteFolder: deleting folder ${folder.id}`);
         await joplin.data.delete(['folders', folder.id]);
         console.log('deleteBibleQuoteFolder: deleted');
@@ -21,8 +23,9 @@
   }
 
   async function createBibleQuoteFolder(): Promise<string> {
-    console.log('createBibleQuoteFolder: creating new folder');
-    const result = await joplin.data.post(['folders'], null, { title: 'BibleQuote' });
+    const folderName = await joplin.settings.value('biblesImportFolder');
+    console.log(`createBibleQuoteFolder: creating new folder "${folderName}"`);
+    const result = await joplin.data.post(['folders'], null, { title: folderName });
     console.log(`createBibleQuoteFolder: created folder ${result.id}`);
     return result.id;
   }

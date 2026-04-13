@@ -108,6 +108,14 @@ export namespace Settings {
         No: 'No',
       },
     },
+    biblesImportFolder: {
+      value: 'BibleQuote',
+      type: SettingItemType.String,
+      section: 'bibleQuoteSection',
+      public: true,
+      label: 'Mobile import folder name',
+      description: 'Name of the folder to import bibles into.',
+    },
   };
 
   export const pathSettings = ['biblePath', 'biblesPath'];
