@@ -3,6 +3,8 @@ import joplin from 'api';
 import { Settings } from './settings';
 import { ContentScriptType } from 'api/types';
 import { importBiblesMobile } from './utils/bibleNoteStorage'
+import { getOsisBiblesFromNote } from './utils/getOsisBiblesFromNote';
+import { getOsisBibles } from './utils/getOsisBibles';
 
 
 export namespace bibleQuote {
@@ -23,6 +25,44 @@ export namespace bibleQuote {
     });
 
     await joplin.contentScripts.register(ContentScriptType.MarkdownItPlugin, 'bible-quote', './markdownItPlugin.js');
+
+    joplin.contentScripts.onMessage('bible-quote', async (message: any) => {
+      console.log('bibleQuote: received message from content script:', JSON.stringify(message));
+      if (message.type === 'getBibles') {
+        const { id } = message;
+        const importBiblesMobile = await joplin.settings.value('importBiblesMobile');
+        const biblesImportFolder = await joplin.settings.value('biblesImportFolder');
+        console.log(`bibleQuote: importBiblesMobile=${importBiblesMobile}, biblesImportFolder=${biblesImportFolder}`);
+        
+        let bibles: any[];
+        if (importBiblesMobile === 'Yes') {
+          console.log('bibleQuote: loading bibles from notes');
+          bibles = await getOsisBiblesFromNote(biblesImportFolder);
+        } else {
+          console.log('bibleQuote: loading bibles from filesystem');
+          const biblesPath = await joplin.settings.value('biblesPath');
+          bibles = getOsisBibles(biblesPath);
+        }
+        const versions = bibles.map((b: any) => b.$.osisIDWork);
+        console.log(`bibleQuote: returning ${bibles.length} bibles with versions: ${versions.join(', ')}`);
+        
+        const pluginConfig = {
+          importBiblesMobile,
+          biblesImportFolder,
+          language: await joplin.settings.value('language'),
+          biblePath: await joplin.settings.value('biblePath'),
+          biblesPath: await joplin.settings.value('biblesPath'),
+          verseAlignment: await joplin.settings.value('verseAlignment'),
+          bookAlignment: await joplin.settings.value('bookAlignment'),
+          chapterAlignment: await joplin.settings.value('chapterAlignment'),
+          chapterPadding: await joplin.settings.value('chapterPadding'),
+          verseFontSize: await joplin.settings.value('verseFontSize'),
+        };
+        
+        return { id, bibles, versions, pluginConfig };
+      }
+      return null;
+    });
   }
 
   /**

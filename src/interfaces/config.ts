@@ -7,4 +7,6 @@ export interface PluginConfig {
   language: string;
   verseAlignment: string;
   verseFontSize: number;
+  importBiblesMobile: string;
+  biblesImportFolder: string;
 }

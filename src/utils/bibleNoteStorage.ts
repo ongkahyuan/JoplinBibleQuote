@@ -35,7 +35,11 @@
     for (const bible of osisBibles) {
       const osisId = bible.$?.osisIDWork || 'Unknown';
       console.log(`createBibleNotes: creating note "${osisId}"`);
-      await joplin.data.post(['notes'], null, { title: osisId, parent_id: parentId });
+      await joplin.data.post(['notes'], null, { 
+        title: osisId, 
+        body: JSON.stringify(bible),
+        parent_id: parentId 
+      });
     }
     console.log('createBibleNotes: finished');
   }
