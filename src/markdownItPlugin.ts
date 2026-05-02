@@ -16,7 +16,7 @@ let defaultOsisBible: OsisBible;
 let osisBibles: Array<OsisBible> = [];
 let bcv: any;
 
-export default function (context) {
+export default function (_context: any) {
   return {
     plugin: function (markdownIt: any, options: any) {
       const bibleVersion = options.settingValue('bibleVersion');
@@ -48,7 +48,7 @@ export default function (context) {
         if (token.info !== 'bible') return defaultRender(tokens, idx, options, env, self);
 
         if (!defaultOsisBible) {
-          return ErrorManager(`Invalid bible version "${pluginConfig.bibleVersion}". Check plugin settings.`);
+          return '<div style="padding:30px;border:1px solid orange;text-align:center">Loading bible data...</div>';
         }
 
         const versionNames = availableVersions.map((v) => v.value);
@@ -56,7 +56,11 @@ export default function (context) {
         if (parseResult.type === 'error') return ErrorManager(parseResult.errorMessage);
         if (parseResult.type === 'help') return Help({ language: pluginConfig.language });
         if (parseResult.type === 'index')
-          return BibleIndex({ bibleIndex, bibleInfo: bcv.translation_info(), bookId: parseResult.bookId ?? undefined });
+          return BibleIndex({
+            bibleIndex,
+            bibleInfo: bcv.translation_info(),
+            bookId: parseResult.bookId ?? undefined,
+          });
 
         const html = Main({
           bibleIndex,
@@ -73,6 +77,23 @@ export default function (context) {
 }
 
 function importBcvParser(citationLanguage: string): any {
-  const bcvParser: any = require(`bible-passage-reference-parser/js/${citationLanguage}_bcv_parser`).bcv_parser;
-  return new bcvParser();
+  let bcvModule: any;
+  switch (citationLanguage) {
+    case 'en':
+      bcvModule = require('bible-passage-reference-parser/js/en_bcv_parser').bcv_parser;
+      break;
+    case 'es':
+      bcvModule = require('bible-passage-reference-parser/js/es_bcv_parser').bcv_parser;
+      break;
+    case 'fr':
+      bcvModule = require('bible-passage-reference-parser/js/fr_bcv_parser').bcv_parser;
+      break;
+    case 'zh':
+      bcvModule = require('bible-passage-reference-parser/js/zh_bcv_parser').bcv_parser;
+      break;
+    default:
+      bcvModule = require('bible-passage-reference-parser/js/en_bcv_parser').bcv_parser;
+      break;
+  }
+  return new bcvModule();
 }

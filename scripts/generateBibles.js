@@ -62,7 +62,12 @@ async function main() {
 
   fs.writeFileSync(path.join(GENERATED_DIR, 'bibles.json'), JSON.stringify(bibles));
 
-  console.log(`\nGenerated ${versions.length} bibles in src/generated/`);
+  const biblesDir = path.join(GENERATED_DIR, 'bibles');
+  if (fs.existsSync(biblesDir)) {
+    fs.rmSync(biblesDir, { recursive: true });
+  }
+
+  console.log(`\nGenerated ${versions.length} bibles in src/generated/bibles.json`);
 }
 
 main().catch((err) => {
