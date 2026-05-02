@@ -12,5 +12,9 @@
 		"Bible",
 		"citation",
 		"quote"
+	],
+	"platforms": [
+		"mobile",
+		"desktop"
 	]
 }

@@ -1,6 +1,5 @@
 export interface PluginConfig {
-  biblePath: string;
-  biblesPath: string;
+  bibleVersion: string;
   bookAlignment: string;
   chapterAlignment: string;
   chapterPadding: number;
