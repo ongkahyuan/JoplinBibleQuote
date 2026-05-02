@@ -5,11 +5,21 @@ const { parseStringPromise } = require('xml2js');
 const OSIS_DIR = path.resolve(__dirname, '..', 'bibles', 'OSIS');
 const GENERATED_DIR = path.resolve(__dirname, '..', 'src', 'generated');
 
+function sanitize(name) {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
 async function main() {
+  const existingJs = fs.existsSync(GENERATED_DIR)
+    ? fs.readdirSync(GENERATED_DIR).filter((f) => f.startsWith('bible_') && f.endsWith('.js'))
+    : [];
+  for (const f of existingJs) {
+    fs.unlinkSync(path.join(GENERATED_DIR, f));
+  }
+
   const files = fs.readdirSync(OSIS_DIR).filter((f) => f.endsWith('.xml'));
 
   const versions = [];
-  const bibles = {};
 
   for (const file of files) {
     const filePath = path.join(OSIS_DIR, file);
@@ -37,13 +47,18 @@ async function main() {
       continue;
     }
 
+    const fileName = `bible_${sanitize(osisIDWork)}.js`;
+
     versions.push({
       value: osisIDWork,
       label: label,
+      file: fileName,
     });
 
-    bibles[osisIDWork] = osisText;
-    console.log(`  -> ${osisIDWork} (${label})`);
+    const jsContent = 'module.exports = ' + JSON.stringify(osisText) + ';\n';
+    fs.writeFileSync(path.join(GENERATED_DIR, fileName), jsContent);
+
+    console.log(`  -> ${osisIDWork} (${label}) → ${fileName}`);
   }
 
   if (versions.length === 0) {
@@ -54,13 +69,15 @@ async function main() {
   fs.mkdirSync(GENERATED_DIR, { recursive: true });
 
   const versionsContent =
-    'export const availableVersions: Array<{ value: string; label: string }> = ' +
+    'export const availableVersions: Array<{ value: string; label: string; file: string }> = ' +
     JSON.stringify(versions) +
     ';\n';
 
   fs.writeFileSync(path.join(GENERATED_DIR, 'versions.ts'), versionsContent);
 
-  fs.writeFileSync(path.join(GENERATED_DIR, 'bibles.json'), JSON.stringify(bibles));
+  // Clean up old single bibles.json if it still exists
+  const oldJson = path.join(GENERATED_DIR, 'bibles.json');
+  if (fs.existsSync(oldJson)) fs.unlinkSync(oldJson);
 
   console.log(`\nGenerated ${versions.length} bibles in src/generated/`);
 }
