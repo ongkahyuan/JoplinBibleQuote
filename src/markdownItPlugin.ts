@@ -1,28 +1,21 @@
 import { BibleLanguage } from './interfaces/bibleIndex';
 import { PluginConfig } from './interfaces/config';
-import { OsisBible } from './interfaces/osisBible';
-const bundledBibles: Record<string, OsisBible> = require('./generated/bibles.json');
-import { availableVersions } from './generated/versions';
-import { bibleIndexFull } from './languages';
-import ErrorManager from './components/ErrorManager';
-import Main from './components/Main';
-import Help from './components/Help';
 import parser from './parser';
-import BibleIndex from './components/BibleIndex';
+import ErrorManager from './components/ErrorManager';
+import Help from './components/Help';
+import BibleIndexComponent from './components/BibleIndex';
+import { bibleIndexFull } from './languages';
+import { availableVersions } from './generated/versions';
 
-let pluginConfig: PluginConfig;
-let bibleIndex: BibleLanguage;
-let defaultOsisBible: OsisBible;
-let osisBibles: Array<OsisBible> = [];
-let bcv: any;
+export default function (context: any) {
+  const contentScriptId = context.contentScriptId;
 
-export default function (_context: any) {
   return {
     plugin: function (markdownIt: any, options: any) {
       const bibleVersion = options.settingValue('bibleVersion');
       const language = options.settingValue('language') || 'en';
 
-      pluginConfig = {
+      const pluginConfig: PluginConfig = {
         bibleVersion,
         language,
         verseFontSize: options.settingValue('verseFontSize') || 16,
@@ -32,10 +25,10 @@ export default function (_context: any) {
         chapterPadding: options.settingValue('chapterPadding') || 10,
       };
 
-      bibleIndex = bibleIndexFull[language] || bibleIndexFull['en'];
-      defaultOsisBible = bundledBibles[bibleVersion];
-      osisBibles = Object.values(bundledBibles);
-      bcv = importBcvParser(language);
+      const bibleIndex: BibleLanguage = bibleIndexFull[language] || bibleIndexFull['en'];
+      const bcv = importBcvParser(language);
+      const bibleInfo = bcv.translation_info();
+      const versionNames = availableVersions.map((v) => v.value);
 
       const defaultRender =
         markdownIt.renderer.rules.fence ||
@@ -47,32 +40,46 @@ export default function (_context: any) {
         const token = tokens[idx];
         if (token.info !== 'bible') return defaultRender(tokens, idx, options, env, self);
 
-        if (!defaultOsisBible) {
-          return '<div style="padding:30px;border:1px solid orange;text-align:center">Loading bible data...</div>';
-        }
-
-        const versionNames = availableVersions.map((v) => v.value);
         const parseResult = parser(token.content, bcv, versionNames);
         if (parseResult.type === 'error') return ErrorManager(parseResult.errorMessage);
         if (parseResult.type === 'help') return Help({ language: pluginConfig.language });
         if (parseResult.type === 'index')
-          return BibleIndex({
+          return BibleIndexComponent({
             bibleIndex,
-            bibleInfo: bcv.translation_info(),
+            bibleInfo,
             bookId: parseResult.bookId ?? undefined,
           });
 
-        const html = Main({
-          bibleIndex,
-          bibleInfo: bcv.translation_info(),
-          defaultOsisBible,
-          osisBibles,
-          parsedEntities: parseResult.entities,
-          pluginConfig,
-        });
-        return html;
+        let data: string;
+        try {
+          data = JSON.stringify({
+            entities: parseResult.entities,
+            pluginConfig,
+            bibleInfo,
+            language,
+            defaultVersion: bibleVersion,
+            contentScriptId,
+          });
+        } catch (e: any) {
+          const errMsg = 'Error serializing bible data: ' + (e.message || String(e));
+          console.error('[BibleQuote MD]', errMsg);
+          return '<div style="padding:30px;border:1px solid red;text-align:center">' + errMsg + '</div>';
+        }
+
+        const encodedData = encodeURIComponent(data);
+        console.log('[BibleQuote MD] Generated placeholder, data size:', data.length, 'bytes');
+
+        return (
+          '<div class="bible-quote-placeholder" data-bible-data="' +
+          encodedData +
+          '">' +
+          '<div style="padding:30px;border:1px solid orange;text-align:center">Loading bible verses...</div>' +
+          '</div>'
+        );
       };
     },
+
+    assets: () => [{ name: './viewer.js' }],
   };
 }
 
