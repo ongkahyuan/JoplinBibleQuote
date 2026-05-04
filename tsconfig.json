@@ -1,13 +1,12 @@
 {
 	"compilerOptions": {
 		"outDir": "./dist/",
-		"module": "esnext",
+		"module": "commonjs",
 		"moduleResolution": "node",
 		"target": "es2015",
 		"jsx": "react",
 		"allowJs": true,
 		"baseUrl": ".",
-		"resolveJsonModule": true,
 		"esModuleInterop": true
 	}
 }
