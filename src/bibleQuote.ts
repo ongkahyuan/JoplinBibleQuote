@@ -6,14 +6,7 @@ import { OsisBible } from './interfaces/osisBible';
 import { bibleIndexFull } from './languages';
 import Main from './components/Main';
 
-let biblesPromise: Promise<Record<string, OsisBible>> | null = null;
-
-async function getBundledBibles(): Promise<Record<string, OsisBible>> {
-  if (!biblesPromise) {
-    biblesPromise = import(/* webpackMode: "eager" */ './generated/bibles.json').then((m: any) => m.default || m);
-  }
-  return biblesPromise;
-}
+const bundledBibles: Record<string, OsisBible> = require('./generated/bibles.json');
 
 export const contentScriptId = 'bible-quote';
 
@@ -41,20 +34,11 @@ export namespace bibleQuote {
         }
 
         const bibleIndex: BibleLanguage = bibleIndexFull[language] || bibleIndexFull['en'];
-
-        let defaultOsisBible: OsisBible | undefined;
-        let osisBibles: OsisBible[];
-        try {
-          const bundledBibles = await getBundledBibles();
-          defaultOsisBible = bundledBibles[pluginConfig.bibleVersion];
-          osisBibles = Object.values(bundledBibles);
-        } catch (e: any) {
-          console.error('[BibleQuote BG] failed to load bibles:', e.message || String(e));
-          return { error: 'Failed to load bible data: ' + (e.message || String(e)) };
-        }
+        const defaultOsisBible = bundledBibles[pluginConfig.bibleVersion];
+        const osisBibles = Object.values(bundledBibles);
 
         console.log('[BibleQuote BG] defaultOsisBible:', defaultOsisBible ? 'found' : 'NOT FOUND');
-        console.log('[BibleQuote BG] osisBibles count:', osisBibles!.length);
+        console.log('[BibleQuote BG] osisBibles count:', osisBibles.length);
 
         if (!defaultOsisBible) {
           return { error: 'Bible version not found: ' + pluginConfig.bibleVersion };

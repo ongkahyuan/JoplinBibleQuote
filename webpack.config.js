@@ -203,8 +203,8 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
 							// already copied into /dist so we don't copy them.
 							'**/*.ts',
 							'**/*.tsx',
-							// The bibles JSON is bundled as a separate webpack chunk via
-							// dynamic import, so it doesn't need to be copied.
+							// The bibles JSON is bundled into the content script
+							// by webpack, so it doesn't need to be copied.
 							'**/generated/bibles.json',
 						],
 					},
