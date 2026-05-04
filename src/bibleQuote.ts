@@ -10,20 +10,7 @@ let biblesPromise: Promise<Record<string, OsisBible>> | null = null;
 
 async function getBundledBibles(): Promise<Record<string, OsisBible>> {
   if (!biblesPromise) {
-    biblesPromise = (async () => {
-      const pluginDir = await joplin.plugins.installationDir();
-      const filePath = pluginDir + '/generated/bibles.json';
-
-      let text: string;
-      try {
-        const fs = require('fs');
-        text = await fs.promises.readFile(filePath, 'utf8');
-      } catch {
-        const response = await fetch(filePath);
-        text = await response.text();
-      }
-      return JSON.parse(text);
-    })();
+    biblesPromise = import(/* webpackMode: "eager" */ './generated/bibles.json').then((m: any) => m.default || m);
   }
   return biblesPromise;
 }
